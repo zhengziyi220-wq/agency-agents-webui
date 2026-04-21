@@ -21,6 +21,14 @@ async function init() {
     await refreshTools();
     await loadAgents();
     updateUrl();
+    
+    // 自动选择第一个已安装的工具
+    const installedTools = Object.entries(tools).filter(([, t]) => t.installed);
+    if (installedTools.length > 0) {
+        selectTool(installedTools[0][0]);
+    } else if (Object.keys(tools).length > 0) {
+        selectTool(Object.keys(tools)[0]);
+    }
 }
 
 function updateUrl() {
