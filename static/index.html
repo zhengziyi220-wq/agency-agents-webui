@@ -252,11 +252,15 @@
         
         // 安装工具
         async function installTool(name) {
+            console.log('安装工具:', name);
             if (!confirm(`确定安装 ${tools[name].name}？`)) return;
+            console.log('显示安装模态框');
             showInstallModal(`安装 ${tools[name].name}`);
             document.getElementById('installStatus').textContent = '正在启动安装任务...';
+            console.log('发送安装请求');
             const res = await fetch(`/api/install/${name}`, {method:'POST'});
             const data = await res.json();
+            console.log('安装响应:', data);
             if (data.success) {
                 document.getElementById('installStatus').textContent = '安装进行中...';
                 pollInstall(data.task_id);
