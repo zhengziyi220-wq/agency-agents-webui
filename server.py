@@ -1,0 +1,657 @@
+#!/usr/bin/env python3
+"""
+agency-agents WebUI - AI智能体管理面板
+支持多工具分区管理、一键安装、人设切换、工具控制
+"""
+
+import os
+import json
+import subprocess
+import asyncio
+import shutil
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, List, Any
+from contextlib import asynccontextmanager
+
+import psutil
+import git
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
+
+# 配置
+BASE_DIR = Path(__file__).parent
+REPO_PATH = BASE_DIR.parent / "agency-agents-zh"
+CONFIG_PATH = BASE_DIR / "tool_configs.json"
+DATA_DIR = BASE_DIR / "data"
+LOGS_DIR = BASE_DIR / "logs"
+ACTIVE_AGENTS_FILE = DATA_DIR / "active_agents.json"
+INSTALL_HISTORY_FILE = DATA_DIR / "install_history.json"
+UPDATE_HISTORY_FILE = DATA_DIR / "update_history.json"
+
+# 确保目录存在
+DATA_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
+
+# 全局状态
+install_tasks: Dict[str, Dict] = {}
+update_task: Optional[Dict] = None
+
+
+class ToolConfig(BaseModel):
+    name: str
+    description: str
+    install_type: str
+    install_cmd: str
+    skills_path: str
+    active_config: Optional[str] = None
+    active_type: Optional[str] = None
+    instruction: Optional[str] = None
+    restart_required: bool = False
+    has_web: bool = False
+    discord_limit: bool = False
+    process_name: str
+    categories: Optional[List[str]] = None
+    web_url: Optional[str] = None
+    start_cmd: Optional[str] = None
+    stop_cmd: Optional[str] = None
+    restart_cmd: Optional[str] = None
+    log_path: Optional[str] = None
+
+
+def load_tool_configs() -> Dict[str, ToolConfig]:
+    """加载工具配置"""
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return {k: ToolConfig(**v) for k, v in data.items()}
+
+
+def load_json_file(filepath: Path, default: Any = None) -> Any:
+    """加载JSON文件"""
+    if filepath.exists():
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return default or {}
+
+
+def save_json_file(filepath: Path, data: Any):
+    """保存JSON文件"""
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def expand_path(path: str) -> Path:
+    """展开路径中的~"""
+    return Path(os.path.expanduser(path))
+
+
+def check_tool_installed(tool_name: str, config: ToolConfig) -> Dict:
+    """检查工具是否已安装"""
+    result = {
+        "installed": False,
+        "path": None,
+        "agent_count": 0,
+        "agents": []
+    }
+    
+    skills_path = expand_path(config.skills_path)
+    if skills_path.exists():
+        result["installed"] = True
+        result["path"] = str(skills_path)
+        
+        # 统计已安装的智能体
+        if skills_path.is_dir():
+            for item in skills_path.iterdir():
+                if item.is_file() and item.suffix in ['.md', '.mdc']:
+                    result["agents"].append(item.stem)
+                elif item.is_dir() and not item.name.startswith('.'):
+                    # 检查目录下的SKILL.md或SOUL.md
+                    for sub in item.iterdir():
+                        if sub.name in ['SKILL.md', 'SOUL.md', 'AGENTS.md']:
+                            result["agents"].append(item.name)
+                            break
+        
+        result["agent_count"] = len(result["agents"])
+    
+    return result
+
+
+def check_process_running(process_name: str) -> Dict:
+    """检查进程是否运行"""
+    result = {
+        "running": False,
+        "pid": None,
+        "cpu_percent": 0,
+        "memory_mb": 0
+    }
+    
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        try:
+            cmdline = ' '.join(proc.info['cmdline'] or [])
+            if process_name.lower() in cmdline.lower() or process_name.lower() in (proc.info['name'] or '').lower():
+                result["running"] = True
+                result["pid"] = proc.info['pid']
+                result["cpu_percent"] = proc.cpu_percent()
+                result["memory_mb"] = round(proc.memory_info().rss / 1024 / 1024, 1)
+                break
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    
+    return result
+
+
+def check_repo_update() -> Dict:
+    """检查仓库更新"""
+    result = {
+        "has_update": False,
+        "current_commit": None,
+        "latest_commit": None,
+        "behind_count": 0,
+        "changes": []
+    }
+    
+    if not REPO_PATH.exists():
+        result["error"] = "仓库不存在"
+        return result
+    
+    try:
+        repo = git.Repo(REPO_PATH)
+        
+        # 获取当前commit
+        result["current_commit"] = {
+            "hash": repo.head.commit.hexsha[:8],
+            "date": datetime.fromtimestamp(repo.head.commit.committed_date).isoformat(),
+            "message": repo.head.commit.message.strip()[:100]
+        }
+        
+        # 获取远程更新
+        origin = repo.remotes.origin
+        origin.fetch()
+        
+        # 比较
+        behind = list(repo.iter_commits('HEAD..origin/main'))
+        result["behind_count"] = len(behind)
+        
+        if behind:
+            result["has_update"] = True
+            result["latest_commit"] = {
+                "hash": behind[0].hexsha[:8],
+                "date": datetime.fromtimestamp(behind[0].committed_date).isoformat(),
+                "message": behind[0].message.strip()[:100]
+            }
+            
+            # 获取变化文件
+            for commit in behind[:5]:  # 最近5个commit
+                for parent in commit.parents:
+                    diff = parent.diff(commit)
+                    for change in diff:
+                        result["changes"].append({
+                            "type": change.change_type,
+                            "file": change.b_path or change.a_path
+                        })
+    
+    except Exception as e:
+        result["error"] = str(e)
+    
+    return result
+
+
+def run_command(cmd: str, cwd: Optional[str] = None, log_file: Optional[Path] = None) -> Dict:
+    """执行命令并返回结果"""
+    try:
+        process = subprocess.Popen(
+            cmd,
+            shell=True,
+            cwd=cwd or str(BASE_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        output = []
+        for line in process.stdout:
+            output.append(line)
+            if log_file:
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(line)
+        
+        process.wait()
+        
+        return {
+            "success": process.returncode == 0,
+            "returncode": process.returncode,
+            "output": ''.join(output)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "returncode": -1,
+            "output": str(e)
+        }
+
+
+# FastAPI应用
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期"""
+    print("🚀 agency-agents WebUI 启动")
+    print(f"📁 仓库路径: {REPO_PATH}")
+    print(f"📊 配置文件: {CONFIG_PATH}")
+    yield
+    print("👋 agency-agents WebUI 关闭")
+
+
+app = FastAPI(
+    title="agency-agents WebUI",
+    description="AI智能体管理面板 - 支持多工具分区管理",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# 挂载静态文件
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+
+@app.get("/")
+async def index():
+    """主页"""
+    return FileResponse(BASE_DIR / "static" / "index.html")
+
+
+@app.get("/api/tools")
+async def get_tools():
+    """获取所有工具状态"""
+    configs = load_tool_configs()
+    tools = {}
+    
+    for tool_name, config in configs.items():
+        install_status = check_tool_installed(tool_name, config)
+        process_status = check_process_running(config.process_name)
+        
+        tools[tool_name] = {
+            "name": config.name,
+            "description": config.description,
+            "installed": install_status["installed"],
+            "agent_count": install_status["agent_count"],
+            "agents": install_status["agents"],
+            "skills_path": install_status["path"],
+            "running": process_status["running"],
+            "pid": process_status["pid"],
+            "cpu_percent": process_status["cpu_percent"],
+            "memory_mb": process_status["memory_mb"],
+            "has_web": config.has_web,
+            "web_url": config.web_url,
+            "restart_required": config.restart_required,
+            "discord_limit": config.discord_limit,
+            "categories": config.categories,
+            "can_start": config.start_cmd is not None,
+            "can_stop": config.stop_cmd is not None,
+            "can_restart": config.restart_cmd is not None
+        }
+    
+    return {"tools": tools}
+
+
+@app.get("/api/agents")
+async def get_agents():
+    """获取所有可用智能体"""
+    if not REPO_PATH.exists():
+        raise HTTPException(status_code=404, detail="仓库不存在，请先克隆agency-agents-zh")
+    
+    agents = {}
+    departments = {}
+    
+    # 扫描仓库中的智能体
+    for category_dir in REPO_PATH.iterdir():
+        if category_dir.is_dir() and not category_dir.name.startswith('.'):
+            category_name = category_dir.name
+            departments[category_name] = []
+            
+            for agent_file in category_dir.glob('*.md'):
+                if agent_file.name not in ['README.md', 'CONTRIBUTING.md']:
+                    agent_name = agent_file.stem
+                    agents[agent_name] = {
+                        "name": agent_name,
+                        "category": category_name,
+                        "file": str(agent_file.relative_to(REPO_PATH))
+                    }
+                    departments[category_name].append(agent_name)
+    
+    return {"agents": agents, "departments": departments}
+
+
+@app.get("/api/active-agents")
+async def get_active_agents():
+    """获取当前激活的人设"""
+    return load_json_file(ACTIVE_AGENTS_FILE, {})
+
+
+@app.post("/api/active-agents/{tool_name}/{agent_name}")
+async def set_active_agent(tool_name: str, agent_name: str):
+    """设置激活的人设"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    active_agents = load_json_file(ACTIVE_AGENTS_FILE, {})
+    
+    # 更新激活状态
+    active_agents[tool_name] = {
+        "agent": agent_name,
+        "timestamp": datetime.now().isoformat()
+    }
+    save_json_file(ACTIVE_AGENTS_FILE, active_agents)
+    
+    # 如果有配置文件需要修改
+    if config.active_config:
+        skills_path = expand_path(config.skills_path)
+        agent_dir = skills_path / agent_name
+        
+        if agent_dir.exists():
+            # 这里可以实现具体的激活逻辑
+            # 例如：复制SOUL.md到激活位置
+            pass
+    
+    # 如果需要重启
+    if config.restart_required:
+        return {
+            "success": True,
+            "message": f"已设置 {agent_name} 为当前人设，需要重启 {config.name} 生效",
+            "need_restart": True,
+            "restart_cmd": config.restart_cmd
+        }
+    
+    # 如果是指令类工具
+    if config.active_type == "instruction":
+        instruction = config.instruction.replace("{agent}", agent_name)
+        return {
+            "success": True,
+            "message": f"已设置 {agent_name} 为当前人设",
+            "instruction": instruction
+        }
+    
+    return {"success": True, "message": f"已激活 {agent_name}"}
+
+
+@app.post("/api/install/{tool_name}")
+async def install_tool(tool_name: str, background_tasks: BackgroundTasks, categories: Optional[str] = None):
+    """一键安装工具"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    
+    if not REPO_PATH.exists():
+        raise HTTPException(status_code=404, detail="仓库不存在")
+    
+    # 生成日志文件
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / "install" / f"{tool_name}_{timestamp}.log"
+    log_file.parent.mkdir(exist_ok=True)
+    
+    # 构建安装命令
+    install_cmd = config.install_cmd.replace("{repo_path}", str(REPO_PATH))
+    
+    # 如果指定了分类
+    if categories and config.categories:
+        category_list = [c.strip() for c in categories.split(',')]
+        if config.discord_limit:
+            # Hermes特殊处理：逐个分类安装
+            install_cmd = f"cd {REPO_PATH}"
+            for cat in category_list:
+                install_cmd += f" && ./scripts/install.sh --tool {tool_name} --category {cat}"
+    
+    # 记录安装任务
+    task_id = f"{tool_name}_{timestamp}"
+    install_tasks[task_id] = {
+        "tool": tool_name,
+        "status": "running",
+        "start_time": datetime.now().isoformat(),
+        "log_file": str(log_file)
+    }
+    
+    # 后台执行安装
+    def run_install():
+        result = run_command(install_cmd, log_file=log_file)
+        install_tasks[task_id]["status"] = "completed" if result["success"] else "failed"
+        install_tasks[task_id]["end_time"] = datetime.now().isoformat()
+        install_tasks[task_id]["output"] = result["output"][-1000:]  # 保留最后1000字符
+        
+        # 记录安装历史
+        history = load_json_file(INSTALL_HISTORY_FILE, {"installs": []})
+        history["installs"].append({
+            "tool": tool_name,
+            "timestamp": datetime.now().isoformat(),
+            "success": result["success"],
+            "categories": categories
+        })
+        save_json_file(INSTALL_HISTORY_FILE, history)
+    
+    background_tasks.add_task(run_install)
+    
+    return {
+        "success": True,
+        "task_id": task_id,
+        "message": f"开始安装 {config.name}",
+        "log_file": str(log_file)
+    }
+
+
+@app.get("/api/install/status/{task_id}")
+async def get_install_status(task_id: str):
+    """获取安装任务状态"""
+    if task_id not in install_tasks:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    
+    task = install_tasks[task_id]
+    
+    # 读取日志
+    log_content = ""
+    if Path(task["log_file"]).exists():
+        with open(task["log_file"], 'r', encoding='utf-8') as f:
+            log_content = f.read()[-2000:]  # 最后2000字符
+    
+    return {
+        **task,
+        "log": log_content
+    }
+
+
+@app.post("/api/tool/{tool_name}/start")
+async def start_tool(tool_name: str):
+    """启动工具"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    if not config.start_cmd:
+        raise HTTPException(status_code=400, detail=f"{config.name} 不支持启动操作")
+    
+    # 生成日志文件
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / tool_name / f"startup_{timestamp}.log"
+    log_file.parent.mkdir(exist_ok=True)
+    
+    result = run_command(config.start_cmd, log_file=log_file)
+    
+    return {
+        "success": result["success"],
+        "message": f"{'启动成功' if result['success'] else '启动失败'}",
+        "log_file": str(log_file),
+        "output": result["output"][-500:]
+    }
+
+
+@app.post("/api/tool/{tool_name}/stop")
+async def stop_tool(tool_name: str):
+    """停止工具"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    if not config.stop_cmd:
+        raise HTTPException(status_code=400, detail=f"{config.name} 不支持停止操作")
+    
+    result = run_command(config.stop_cmd)
+    
+    return {
+        "success": result["success"],
+        "message": f"{'停止成功' if result['success'] else '停止失败'}",
+        "output": result["output"][-500:]
+    }
+
+
+@app.post("/api/tool/{tool_name}/restart")
+async def restart_tool(tool_name: str):
+    """重启工具"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    if not config.restart_cmd:
+        raise HTTPException(status_code=400, detail=f"{config.name} 不支持重启操作")
+    
+    # 生成日志文件
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / tool_name / f"restart_{timestamp}.log"
+    log_file.parent.mkdir(exist_ok=True)
+    
+    result = run_command(config.restart_cmd, log_file=log_file)
+    
+    return {
+        "success": result["success"],
+        "message": f"{'重启成功' if result['success'] else '重启失败'}",
+        "log_file": str(log_file),
+        "output": result["output"][-500:]
+    }
+
+
+@app.get("/api/logs/{tool_name}")
+async def get_tool_logs(tool_name: str, log_type: str = "latest"):
+    """获取工具日志"""
+    log_dir = LOGS_DIR / tool_name
+    if not log_dir.exists():
+        return {"logs": []}
+    
+    logs = []
+    for log_file in sorted(log_dir.glob("*.log"), reverse=True)[:10]:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        logs.append({
+            "file": log_file.name,
+            "timestamp": log_file.stem.split('_', 1)[-1],
+            "content": content[-5000:]  # 最后5000字符
+        })
+    
+    return {"logs": logs}
+
+
+@app.get("/api/update/check")
+async def check_update():
+    """检查更新"""
+    return check_repo_update()
+
+
+@app.post("/api/update/execute")
+async def execute_update(background_tasks: BackgroundTasks):
+    """执行更新"""
+    global update_task
+    
+    if not REPO_PATH.exists():
+        raise HTTPException(status_code=404, detail="仓库不存在")
+    
+    # 生成日志文件
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / "update" / f"update_{timestamp}.log"
+    log_file.parent.mkdir(exist_ok=True)
+    
+    update_task = {
+        "status": "running",
+        "start_time": datetime.now().isoformat(),
+        "log_file": str(log_file)
+    }
+    
+    def run_update():
+        global update_task
+        
+        # 拉取更新
+        result1 = run_command(f"cd {REPO_PATH} && git pull origin main", log_file=log_file)
+        
+        if not result1["success"]:
+            update_task["status"] = "failed"
+            update_task["output"] = result1["output"]
+            return
+        
+        # 重新转换已安装的工具
+        configs = load_tool_configs()
+        tools_updated = []
+        
+        for tool_name, config in configs.items():
+            install_status = check_tool_installed(tool_name, config)
+            if install_status["installed"]:
+                convert_cmd = f"cd {REPO_PATH} && ./scripts/convert.sh --tool {tool_name}"
+                result2 = run_command(convert_cmd, log_file=log_file)
+                if result2["success"]:
+                    tools_updated.append(tool_name)
+        
+        update_task["status"] = "completed"
+        update_task["end_time"] = datetime.now().isoformat()
+        update_task["tools_updated"] = tools_updated
+        
+        # 记录更新历史
+        history = load_json_file(UPDATE_HISTORY_FILE, {"updates": []})
+        history["updates"].append({
+            "timestamp": datetime.now().isoformat(),
+            "tools_updated": tools_updated
+        })
+        save_json_file(UPDATE_HISTORY_FILE, history)
+    
+    background_tasks.add_task(run_update)
+    
+    return {
+        "success": True,
+        "message": "开始更新",
+        "log_file": str(log_file)
+    }
+
+
+@app.get("/api/update/status")
+async def get_update_status():
+    """获取更新状态"""
+    global update_task
+    
+    if not update_task:
+        return {"status": "idle"}
+    
+    # 读取日志
+    log_content = ""
+    if Path(update_task.get("log_file", "")).exists():
+        with open(update_task["log_file"], 'r', encoding='utf-8') as f:
+            log_content = f.read()[-2000:]
+    
+    return {
+        **update_task,
+        "log": log_content
+    }
+
+
+@app.get("/api/health")
+async def health_check():
+    """健康检查"""
+    return {
+        "status": "ok",
+        "repo_exists": REPO_PATH.exists(),
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8888)
