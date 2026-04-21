@@ -28,12 +28,6 @@ AI智能体管理面板 - 支持多工具分区管理、一键安装、人设切
 | Kiro (Amazon) | 全局 | 转换安装 | ❌ |
 | WorkBuddy (腾讯) | 全局 | 转换安装 | ❌ |
 
-## 安装要求
-
-- Python 3.8+
-- Git
-- 已克隆 [agency-agents-zh](https://github.com/jnMetaCode/agency-agents-zh) 仓库
-
 ## 快速安装
 
 ### 1. 克隆仓库
@@ -43,7 +37,7 @@ AI智能体管理面板 - 支持多工具分区管理、一键安装、人设切
 git clone https://github.com/jnMetaCode/agency-agents-zh.git
 
 # 克隆本项目
-git clone https://github.com/你的用户名/agency-agents-webui.git
+git clone https://github.com/zhengziyi220-wq/agency-agents-webui.git
 cd agency-agents-webui
 ```
 
