@@ -1,0 +1,16 @@
+[Unit]
+Description=agency-agents WebUI - AI智能体管理面板
+After=network.target
+
+[Service]
+Type=simple
+User=zy
+Group=zy
+WorkingDirectory=/home/zy/agency-agents-webui
+ExecStart=/usr/bin/python3 server.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
