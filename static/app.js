@@ -152,22 +152,70 @@ function renderAgentGrid() {
     const tool = tools[currentTool];
     const search = document.getElementById('searchInput').value.toLowerCase();
     
-    // 部门筛选
-    const deptFilter = document.createElement('div');
-    deptFilter.className = 'department-filter';
-    deptFilter.innerHTML = `
-        <span class="dept-tag active" onclick="filterByDept('all')">全部</span>
-        ${Object.keys(departments).map(dept => 
-            `<span class="dept-tag" onclick="filterByDept('${dept}')">${dept}</span>`
-        ).join('')}
+    // 当前激活人设显示
+    const activeSection = document.createElement('div');
+    activeSection.className = 'active-agent-section';
+    activeSection.style.cssText = 'background: var(--bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--primary);';
+    
+    if (activeAgents[currentTool]) {
+        activeSection.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">当前激活人设</div>
+                    <div style="font-size: 18px; font-weight: 600; color: var(--primary);">${activeAgents[currentTool].agent}</div>
+                </div>
+                <button class="btn btn-sm" onclick="toggleAgent('${activeAgents[currentTool].agent}')">停用</button>
+            </div>
+        `;
+    } else {
+        activeSection.innerHTML = `
+            <div style="text-align: center; color: var(--text-secondary);">
+                <div style="font-size: 12px; margin-bottom: 4px;">当前激活人设</div>
+                <div>未激活任何人设</div>
+            </div>
+        `;
+    }
+    container.appendChild(activeSection);
+    
+    // 筛选选项
+    const filterSection = document.createElement('div');
+    filterSection.className = 'filter-section';
+    filterSection.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;';
+    filterSection.innerHTML = `
+        <button class="btn btn-sm btn-primary" onclick="setFilter('installed')" id="filterInstalled">已安装 (${tool.agent_count})</button>
+        <button class="btn btn-sm" onclick="setFilter('all')" id="filterAll">全部智能体</button>
+        <button class="btn btn-sm" onclick="setFilter('category')" id="filterCategory">按部门</button>
     `;
-    container.appendChild(deptFilter);
+    container.appendChild(filterSection);
+    
+    // 当前筛选状态
+    if (!window.currentFilter) window.currentFilter = 'installed';
+    
+    // 部门筛选（仅在按部门模式显示）
+    if (window.currentFilter === 'category') {
+        const deptFilter = document.createElement('div');
+        deptFilter.className = 'department-filter';
+        deptFilter.innerHTML = `
+            <span class="dept-tag active" onclick="filterByDept('all')">全部</span>
+            ${Object.keys(departments).map(dept => 
+                `<span class="dept-tag" onclick="filterByDept('${dept}')">${dept}</span>`
+            ).join('')}
+        `;
+        container.appendChild(deptFilter);
+    }
     
     // 智能体卡片
     const grid = document.createElement('div');
     grid.className = 'agent-grid';
     
-    for (const [agentName, agent] of Object.entries(agents)) {
+    // 根据筛选模式过滤智能体
+    let filteredAgents = Object.entries(agents);
+    
+    if (window.currentFilter === 'installed') {
+        filteredAgents = filteredAgents.filter(([name]) => tool.agents.includes(name));
+    }
+    
+    for (const [agentName, agent] of filteredAgents) {
         // 搜索过滤
         if (search && !agentName.toLowerCase().includes(search) && 
             !agent.category.toLowerCase().includes(search)) {
@@ -180,6 +228,7 @@ function renderAgentGrid() {
         const card = document.createElement('div');
         card.className = 'agent-card';
         card.dataset.category = agent.category;
+        card.style.cssText = isActive ? 'border-color: var(--primary);' : '';
         
         card.innerHTML = `
             <div class="agent-card-header">
@@ -207,6 +256,26 @@ function renderAgentGrid() {
     }
     
     container.appendChild(grid);
+}
+
+// 设置筛选模式
+function setFilter(mode) {
+    window.currentFilter = mode;
+    
+    // 更新按钮样式
+    document.querySelectorAll('.filter-section .btn').forEach(btn => {
+        btn.classList.remove('btn-primary');
+    });
+    
+    if (mode === 'installed') {
+        document.getElementById('filterInstalled').classList.add('btn-primary');
+    } else if (mode === 'all') {
+        document.getElementById('filterAll').classList.add('btn-primary');
+    } else if (mode === 'category') {
+        document.getElementById('filterCategory').classList.add('btn-primary');
+    }
+    
+    renderAgentGrid();
 }
 
 // 搜索过滤
