@@ -80,6 +80,7 @@
                     <button class="btn btn-success" id="installToolBtn" onclick="doInstallCurrent()" style="display:none">安装此工具</button>
                     <button class="btn btn-warning" id="startToolBtn" onclick="doStartCurrent()" style="display:none">启动</button>
                     <button class="btn btn-danger" id="stopToolBtn" onclick="doStopCurrent()" style="display:none">停止</button>
+                    <button class="btn btn-danger" id="uninstallToolBtn" onclick="doUninstallCurrent()" style="display:none">卸载</button>
                     <button class="btn btn-default" id="deactivateBtn" onclick="doDeactivate()" style="display:none">停用人设</button>
                 </div>
             </div>
@@ -261,6 +262,7 @@
             document.getElementById('installToolBtn').style.display = !tool.installed ? 'block' : 'none';
             document.getElementById('startToolBtn').style.display = (tool.installed && !tool.running && tool.can_start) ? 'block' : 'none';
             document.getElementById('stopToolBtn').style.display = (tool.running && tool.can_stop) ? 'block' : 'none';
+            document.getElementById('uninstallToolBtn').style.display = tool.installed ? 'block' : 'none';
             
             var ac = active[currentTool];
             document.getElementById('deactivateBtn').style.display = ac ? 'block' : 'none';
@@ -319,10 +321,13 @@
                 html += '</div>';
                 html += '<div class="agent-category">' + a.category + '</div>';
                 html += '<div class="agent-id">' + id + '</div>';
-                html += '<div class="agent-actions">';
-                html += '<button class="btn btn-default" onclick="viewAgent(\'' + id + '\')">查看</button>';
-                html += '<button class="btn btn-primary" onclick="doToggle(\'' + id + '\')">' + (isActive ? '已激活' : '激活') + '</button>';
-                html += '</div></div>';
+            html += '<div class="agent-actions">';
+            html += '<button class="btn btn-default" onclick="viewAgent(\'' + id + '\')">查看</button>';
+            html += '<button class="btn btn-primary" onclick="doToggle(\'' + id + '\')">' + (isActive ? '已激活' : '激活') + '</button>';
+            if (isActive) {
+                html += '<button class="btn btn-default" onclick="showActivateInstruction(\'' + id + '\')">激活指令</button>';
+            }
+            html += '</div></div>';
             }
             list.innerHTML = html;
         }
@@ -431,6 +436,21 @@
         window.doStopCurrent = function() {
             if (currentTool) doStop(currentTool);
         };
+        window.doUninstallCurrent = function() {
+            if (!currentTool) return;
+            var tool = tools[currentTool];
+            if (!confirm('确定卸载 ' + tool.name + ' 的所有智能体？')) return;
+            
+            fetch('/api/tool/' + currentTool + '/uninstall', {method: 'POST'})
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    showToast(data.message);
+                    if (data.success) loadAll();
+                })
+                .catch(function(e) {
+                    showToast('卸载失败');
+                });
+        };
         
         // 日志
         window.showLogs = function(name) {
@@ -480,6 +500,18 @@
         window.copyDetail = function() {
             navigator.clipboard.writeText(document.getElementById('detailContent').textContent);
             showToast('已复制');
+        };
+        
+        // 显示激活指令
+        window.showActivateInstruction = function(id) {
+            if (!currentTool || !tools[currentTool]) return;
+            var tool = tools[currentTool];
+            var instruction = tool.activate_instruction || '请在对话中指定技能';
+            instruction = instruction.replace('{agent_id}', id).replace('{agent_name}', agents[id] ? agents[id].name : id);
+            
+            document.getElementById('detailTitle').textContent = '激活指令';
+            document.getElementById('detailContent').textContent = instruction + '\n\n复制此指令到 ' + tool.name + ' 的对话中使用';
+            document.getElementById('detailModal').style.display = 'flex';
         };
         
         // 关闭弹窗

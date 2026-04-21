@@ -4,6 +4,7 @@
     "description": "开源AI智能体平台(推荐)",
     "install_type": "two_step",
     "install_cmd": "cd {repo_path} && ./scripts/convert.sh --tool openclaw && ./scripts/install.sh --tool openclaw",
+    "uninstall_cmd": "rm -rf ~/.openclaw/agency-agents/*",
     "skills_path": "~/.openclaw/agency-agents/",
     "active_config": "SOUL.md",
     "restart_required": true,
@@ -11,42 +12,59 @@
     "discord_limit": false,
     "process_name": "openclaw",
     "categories": null,
-    "web_url": "http://localhost:3000",
+    "web_url": "http://localhost:18789",
     "start_cmd": "openclaw gateway start",
     "stop_cmd": "openclaw gateway stop",
     "restart_cmd": "openclaw gateway restart",
-    "log_path": "~/.openclaw/logs/"
+    "log_path": "~/.openclaw/logs/",
+    "activate_instruction": "在OpenClaw对话中使用: /skill {agent_id}"
   },
   "hermes": {
     "name": "Hermes Agent",
     "description": "NousResearch开源AI智能体框架",
     "install_type": "category_batch",
     "install_cmd": "cd {repo_path} && ./scripts/convert.sh --tool hermes && ./scripts/install.sh --tool hermes",
+    "uninstall_cmd": "rm -rf ~/.hermes/skills/engineering ~/.hermes/skills/design ~/.hermes/skills/marketing ~/.hermes/skills/product ~/.hermes/skills/testing ~/.hermes/skills/specialized ~/.hermes/skills/finance ~/.hermes/skills/hr ~/.hermes/skills/legal ~/.hermes/skills/sales ~/.hermes/skills/project-management ~/.hermes/skills/support ~/.hermes/skills/supply-chain ~/.hermes/skills/paid-media ~/.hermes/skills/spatial-computing ~/.hermes/skills/game-development ~/.hermes/skills/academic ~/.hermes/skills/strategy",
     "category_cmd": "cd {repo_path} && ./scripts/install.sh --tool hermes --category {category}",
     "skills_path": "~/.hermes/skills/",
-    "active_config": "SOUL.md",
+    "active_config": "SKILL.md",
     "restart_required": false,
     "has_web": false,
     "discord_limit": true,
     "process_name": "hermes",
     "categories": [
-      "academic", "blender", "creative", "data-science", "design", "devops",
-      "dogfood", "domain", "email", "engineering", "feeds", "gaming",
-      "github", "homeassistant", "leisure", "marketing", "mlops",
-      "note-taking", "productivity", "red-teaming", "research",
-      "smart-home", "social-media", "software-development", "testing"
+      "engineering",
+      "design",
+      "marketing",
+      "product",
+      "testing",
+      "specialized",
+      "finance",
+      "hr",
+      "legal",
+      "sales",
+      "project-management",
+      "support",
+      "supply-chain",
+      "paid-media",
+      "spatial-computing",
+      "game-development",
+      "academic",
+      "strategy"
     ],
     "web_url": null,
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": "~/.hermes/logs/"
+    "log_path": "~/.hermes/logs/",
+    "activate_instruction": "在Hermes对话中使用: 使用 {agent_id} 技能"
   },
   "claude_code": {
     "name": "Claude Code",
     "description": "Anthropic官方CLI工具",
     "install_type": "direct_copy",
     "install_cmd": "cd {repo_path} && mkdir -p ~/.claude/agents && cp -r engineering/*.md ~/.claude/agents/ 2>/dev/null; cp -r design/*.md ~/.claude/agents/ 2>/dev/null; cp -r marketing/*.md ~/.claude/agents/ 2>/dev/null; cp -r product/*.md ~/.claude/agents/ 2>/dev/null; cp -r testing/*.md ~/.claude/agents/ 2>/dev/null; cp -r specialized/*.md ~/.claude/agents/ 2>/dev/null; echo '安装完成'",
+    "uninstall_cmd": "rm -rf ~/.claude/agents/*",
     "skills_path": "~/.claude/agents/",
     "active_config": null,
     "active_type": "instruction",
@@ -55,12 +73,20 @@
     "has_web": false,
     "discord_limit": false,
     "process_name": "claude",
-    "categories": ["engineering", "design", "marketing", "product", "testing", "specialized"],
+    "categories": [
+      "engineering",
+      "design",
+      "marketing",
+      "product",
+      "testing",
+      "specialized"
+    ],
     "web_url": null,
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "activate_instruction": "在Claude Code对话中使用: 激活 {agent_name} 模式"
   },
   "copilot": {
     "name": "GitHub Copilot",
@@ -75,12 +101,21 @@
     "has_web": false,
     "discord_limit": false,
     "process_name": "copilot",
-    "categories": ["engineering", "design", "marketing", "product", "testing", "specialized"],
+    "categories": [
+      "engineering",
+      "design",
+      "marketing",
+      "product",
+      "testing",
+      "specialized"
+    ],
     "web_url": null,
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf ~/.github/agents/*",
+    "activate_instruction": "在GitHub Copilot对话中使用: 激活 {agent_name} 模式"
   },
   "cursor": {
     "name": "Cursor",
@@ -94,13 +129,22 @@
     "has_web": false,
     "discord_limit": false,
     "process_name": "cursor",
-    "categories": ["engineering", "design", "marketing", "product", "testing", "specialized"],
+    "categories": [
+      "engineering",
+      "design",
+      "marketing",
+      "product",
+      "testing",
+      "specialized"
+    ],
     "web_url": null,
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
     "log_path": null,
-    "recommend_selective": true
+    "recommend_selective": true,
+    "uninstall_cmd": "rm -rf .cursor/rules/*",
+    "activate_instruction": "在Cursor对话中使用: 使用 {agent_id}"
   },
   "kiro": {
     "name": "Kiro (Amazon)",
@@ -118,7 +162,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf ~/.kiro/agents/*",
+    "activate_instruction": "在Kiro (Amazon)对话中使用: 使用 {agent_id}"
   },
   "antigravity": {
     "name": "Antigravity (Gemini)",
@@ -136,7 +182,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf ~/.gemini/antigravity/skills/*",
+    "activate_instruction": "在Antigravity (Gemini)对话中使用: 使用 {agent_id}"
   },
   "gemini_cli": {
     "name": "Gemini CLI",
@@ -154,7 +202,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf ~/.gemini/extensions/agency-agents/*",
+    "activate_instruction": "在Gemini CLI对话中使用: 使用 {agent_id}"
   },
   "qwen": {
     "name": "Qwen Code",
@@ -172,7 +222,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf .qwen/agents/*",
+    "activate_instruction": "在Qwen Code对话中使用: 使用 {agent_id}"
   },
   "trae": {
     "name": "Trae",
@@ -190,7 +242,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf .trae/rules/*",
+    "activate_instruction": "在Trae对话中使用: 使用 {agent_id}"
   },
   "opencode": {
     "name": "OpenCode",
@@ -208,7 +262,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf .opencode/agents/*",
+    "activate_instruction": "在OpenCode对话中使用: 使用 {agent_id}"
   },
   "aider": {
     "name": "Aider",
@@ -226,7 +282,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf CONVENTIONS.md*",
+    "activate_instruction": "在Aider对话中使用: 使用 {agent_id}"
   },
   "windsurf": {
     "name": "Windsurf",
@@ -244,7 +302,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf .windsurfrules*",
+    "activate_instruction": "在Windsurf对话中使用: 使用 {agent_id}"
   },
   "codex": {
     "name": "Codex CLI",
@@ -262,7 +322,9 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf .codex/agents/*",
+    "activate_instruction": "在Codex CLI对话中使用: 使用 {agent_id}"
   },
   "workbuddy": {
     "name": "WorkBuddy (腾讯)",
@@ -280,7 +342,9 @@
     "start_cmd": "workbuddy start",
     "stop_cmd": "workbuddy stop",
     "restart_cmd": "workbuddy restart",
-    "log_path": "~/.workbuddy/logs/"
+    "log_path": "~/.workbuddy/logs/",
+    "uninstall_cmd": "rm -rf ~/.workbuddy/skills/*",
+    "activate_instruction": "在WorkBuddy (腾讯)对话中使用: 使用 {agent_id}"
   },
   "deerflow": {
     "name": "DeerFlow 2.0",
@@ -298,6 +362,8 @@
     "start_cmd": null,
     "stop_cmd": null,
     "restart_cmd": null,
-    "log_path": null
+    "log_path": null,
+    "uninstall_cmd": "rm -rf skills/custom/*",
+    "activate_instruction": "在DeerFlow 2.0对话中使用: 使用 {agent_id}"
   }
 }

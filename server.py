@@ -627,6 +627,37 @@ async def restart_tool(tool_name: str):
     }
 
 
+@app.post("/api/tool/{tool_name}/uninstall")
+async def uninstall_tool(tool_name: str):
+    """卸载工具的所有智能体"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    
+    # 获取卸载命令
+    uninstall_cmd = getattr(config, 'uninstall_cmd', None)
+    if not uninstall_cmd:
+        # 默认卸载方式：清空skills目录
+        skills_path = expand_path(config.skills_path)
+        uninstall_cmd = f"rm -rf {skills_path}*"
+    
+    result = run_command(uninstall_cmd)
+    
+    # 清除激活状态
+    active_agents = load_json_file(ACTIVE_AGENTS_FILE, {})
+    if tool_name in active_agents:
+        del active_agents[tool_name]
+        save_json_file(ACTIVE_AGENTS_FILE, active_agents)
+    
+    return {
+        "success": result["success"],
+        "message": f"{'卸载成功' if result['success'] else '卸载失败'}",
+        "output": result["output"][-500:]
+    }
+
+
 @app.get("/api/logs/{tool_name}")
 async def get_tool_logs(tool_name: str, log_type: str = "latest"):
     """获取工具日志"""
