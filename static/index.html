@@ -146,6 +146,26 @@
         </div>
     </div>
 
+    <!-- 智能体内容模态框 -->
+    <div class="modal" id="agentModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="agentModalTitle">智能体详情</h3>
+                <button class="btn-close" onclick="closeAgentModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="agent-meta" id="agentMeta"></div>
+                <div class="agent-content" id="agentContent">
+                    <pre></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAgentModal()">关闭</button>
+                <button class="btn btn-primary" onclick="copyAgentContent()">复制内容</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast-container" id="toastContainer"></div>
 

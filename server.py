@@ -717,6 +717,31 @@ async def health_check():
     }
 
 
+@app.get("/api/agent/{agent_id}")
+async def get_agent_content(agent_id: str):
+    """获取智能体文件内容"""
+    if not REPO_PATH.exists():
+        raise HTTPException(status_code=404, detail="仓库不存在")
+    
+    # 查找智能体文件
+    for category_dir in REPO_PATH.iterdir():
+        if category_dir.is_dir() and not category_dir.name.startswith('.'):
+            agent_file = category_dir / f"{agent_id}.md"
+            if agent_file.exists():
+                try:
+                    with open(agent_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return {
+                        "id": agent_id,
+                        "file": str(agent_file.relative_to(REPO_PATH)),
+                        "content": content
+                    }
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"读取文件失败: {str(e)}")
+    
+    raise HTTPException(status_code=404, detail=f"智能体 {agent_id} 不存在")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8888)

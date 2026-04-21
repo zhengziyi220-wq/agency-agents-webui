@@ -235,6 +235,7 @@ function renderAgents() {
                 <div class="agent-id">${agentId}</div>
             </div>
             <div class="agent-card-actions">
+                <button class="btn btn-sm" onclick="viewAgentContent('${agentId}')">查看</button>
                 ${isInstalled ? 
                     `<button class="btn btn-sm ${isActive ? 'btn-primary' : ''}" onclick="toggleAgent('${agentId}')">
                         ${isActive ? '已激活' : '激活'}
@@ -535,4 +536,44 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 3000);
     
     document.getElementById('statusText').textContent = message;
+}
+
+// 查看智能体内容
+async function viewAgentContent(agentId) {
+    try {
+        const res = await fetch(`/api/agent/${agentId}`);
+        const data = await res.json();
+        
+        document.getElementById('agentModalTitle').textContent = `智能体详情 - ${agentId}`;
+        
+        // 显示元信息
+        const metaEl = document.getElementById('agentMeta');
+        metaEl.innerHTML = `
+            <div class="meta-item">
+                <span class="label">ID</span>
+                <span class="value">${data.id}</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">文件路径</span>
+                <span class="value">${data.file}</span>
+            </div>
+        `;
+        
+        // 显示内容
+        document.getElementById('agentContent').querySelector('pre').textContent = data.content;
+        
+        document.getElementById('agentModal').classList.add('show');
+    } catch (e) {
+        showToast('获取智能体内容失败', 'error');
+    }
+}
+
+function closeAgentModal() {
+    document.getElementById('agentModal').classList.remove('show');
+}
+
+function copyAgentContent() {
+    const content = document.getElementById('agentContent').querySelector('pre').textContent;
+    navigator.clipboard.writeText(content);
+    showToast('已复制内容', 'success');
 }
