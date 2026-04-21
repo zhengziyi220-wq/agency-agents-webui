@@ -252,21 +252,36 @@
         
         // 安装工具
         async function installTool(name) {
-            console.log('安装工具:', name);
-            if (!confirm(`确定安装 ${tools[name].name}？`)) return;
-            console.log('显示安装模态框');
-            showInstallModal(`安装 ${tools[name].name}`);
+            const tool = tools[name];
+            if (!tool) { toast('工具不存在'); return; }
+            
+            // 显示确认对话框
+            if (!confirm(`确定安装 ${tool.name}？`)) return;
+            
+            // 显示安装模态框
+            const modal = document.getElementById('installModal');
+            document.getElementById('installTitle').textContent = `安装 ${tool.name}`;
+            document.getElementById('installProgress').style.width = '5%';
+            document.getElementById('installProgress').style.background = '#6366f1';
             document.getElementById('installStatus').textContent = '正在启动安装任务...';
-            console.log('发送安装请求');
-            const res = await fetch(`/api/install/${name}`, {method:'POST'});
-            const data = await res.json();
-            console.log('安装响应:', data);
-            if (data.success) {
-                document.getElementById('installStatus').textContent = '安装进行中...';
-                pollInstall(data.task_id);
-            } else {
-                closeInstallModal();
-                toast('安装失败: ' + (data.message || '未知错误'));
+            document.getElementById('installStatus').style.color = '#94a3b8';
+            document.getElementById('installLog').textContent = '';
+            modal.style.display = 'flex';
+            
+            try {
+                const res = await fetch(`/api/install/${name}`, {method:'POST'});
+                const data = await res.json();
+                
+                if (data.success) {
+                    document.getElementById('installStatus').textContent = '安装进行中...';
+                    pollInstall(data.task_id);
+                } else {
+                    modal.style.display = 'none';
+                    toast('安装失败: ' + (data.message || '未知错误'));
+                }
+            } catch(e) {
+                modal.style.display = 'none';
+                toast('安装请求失败: ' + e.message);
             }
         }
         
@@ -327,7 +342,9 @@
             document.getElementById('installLog').textContent = '';
             document.getElementById('installModal').classList.add('show');
         }
-        function closeInstallModal() { document.getElementById('installModal').classList.remove('show'); }
+        function closeInstallModal() { 
+            document.getElementById('installModal').style.display = 'none'; 
+        }
         
         // 工具控制
         async function startTool(name) {
