@@ -288,7 +288,8 @@ async def get_tools():
             "categories": config.categories,
             "can_start": config.start_cmd is not None,
             "can_stop": config.stop_cmd is not None,
-            "can_restart": config.restart_cmd is not None
+            "can_restart": config.restart_cmd is not None,
+            "activate_instruction": getattr(config, 'activate_instruction', None) or "请在对话中指定技能"
         }
     
     return {"tools": tools}

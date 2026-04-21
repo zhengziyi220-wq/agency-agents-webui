@@ -506,8 +506,17 @@
         window.showActivateInstruction = function(id) {
             if (!currentTool || !tools[currentTool]) return;
             var tool = tools[currentTool];
+            var agent = agents[id];
+            var agentName = agent ? agent.name : id;
             var instruction = tool.activate_instruction || '请在对话中指定技能';
-            instruction = instruction.replace('{agent_id}', id).replace('{agent_name}', agents[id] ? agents[id].name : id);
+            
+            // 调试信息
+            console.log('agent id:', id);
+            console.log('agent:', agent);
+            console.log('agent name:', agentName);
+            console.log('instruction template:', instruction);
+            
+            instruction = instruction.replace('{agent_id}', id).replace('{agent_name}', agentName);
             
             document.getElementById('detailTitle').textContent = '激活指令';
             document.getElementById('detailContent').textContent = instruction + '\n\n复制此指令到 ' + tool.name + ' 的对话中使用';
