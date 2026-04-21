@@ -191,7 +191,7 @@ function renderAgentGrid() {
     // 当前筛选状态
     if (!window.currentFilter) window.currentFilter = 'installed';
     
-    // 部门筛选（仅在按部门模式显示）
+    // 部门筛选(仅在按部门模式显示)
     if (window.currentFilter === 'category') {
         const deptFilter = document.createElement('div');
         deptFilter.className = 'department-filter';
