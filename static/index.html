@@ -499,18 +499,29 @@
         };
         window.copyDetail = function() {
             var content = document.getElementById('detailContent').textContent;
-            navigator.clipboard.writeText(content).then(function() {
-                showToast('已复制');
-            }).catch(function() {
-                // 备用方法
-                var textArea = document.createElement('textarea');
-                textArea.value = content;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showToast('已复制');
-            });
+            
+            // 创建临时textarea
+            var textArea = document.createElement('textarea');
+            textArea.value = content;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('已复制');
+                } else {
+                    showToast('复制失败，请手动复制');
+                }
+            } catch (err) {
+                showToast('复制失败，请手动复制');
+            }
+            
+            document.body.removeChild(textArea);
         };
         
         // 显示激活指令
