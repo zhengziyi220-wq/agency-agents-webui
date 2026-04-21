@@ -10,74 +10,89 @@
     <div class="app">
         <!-- 顶部栏 -->
         <header class="header">
-            <div class="header-left">
-                <h1>🎭 agency-agents WebUI</h1>
-                <span class="subtitle">AI智能体管理面板</span>
-            </div>
-            <div class="header-center">
-                <div class="update-banner" id="updateBanner" style="display: none;">
-                    <span class="update-icon">🔄</span>
-                    <span class="update-text">发现新版本</span>
-                    <button class="btn btn-sm btn-primary" onclick="showUpdateModal()">立即更新</button>
-                    <button class="btn btn-sm btn-ghost" onclick="dismissUpdate()">稍后</button>
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🎭</span>
+                    <span class="logo-text">agency-agents WebUI</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-icon" onclick="refreshAll()" title="刷新">🔄</button>
+                    <button class="btn btn-icon" onclick="checkUpdate()" title="检查更新">⬆️</button>
+                    <div class="url-badge" id="urlBadge">
+                        <span class="url-text" id="urlText">localhost:8888</span>
+                        <button class="btn-copy" onclick="copyUrl()">📋</button>
+                    </div>
                 </div>
             </div>
-            <div class="header-right">
-                <div class="access-url">
-                    <span class="label">访问地址:</span>
-                    <code id="accessUrl">http://localhost:8888</code>
-                    <button class="btn btn-icon" onclick="copyUrl()" title="复制">📋</button>
-                </div>
-                <button class="btn btn-icon" onclick="refreshAll()" title="刷新">🔄</button>
-                <button class="btn btn-icon" onclick="checkUpdate()" title="检查更新">⬆️</button>
+            <div class="update-banner" id="updateBanner" style="display: none;">
+                <span>🔄 发现新版本</span>
+                <button class="btn btn-sm btn-primary" onclick="showUpdateModal()">立即更新</button>
+                <button class="btn btn-sm" onclick="dismissUpdate()">稍后</button>
             </div>
         </header>
 
-        <div class="main">
-            <!-- 左侧面板：工具分区 -->
-            <aside class="sidebar">
+        <!-- 主内容区 -->
+        <main class="main">
+            <!-- 左侧工具栏 -->
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h2>工具分区</h2>
-                    <button class="btn btn-sm" onclick="refreshTools()">刷新</button>
+                    <button class="btn btn-sm" onclick="toggleSidebar()">✕</button>
                 </div>
                 <div class="tool-list" id="toolList">
                     <!-- 动态生成 -->
                 </div>
             </aside>
 
-            <!-- 主区域：智能体管理 -->
-            <main class="content">
-                <div class="content-header">
-                    <div class="tabs" id="toolTabs">
-                        <!-- 动态生成 -->
+            <!-- 右侧内容区 -->
+            <section class="content">
+                <!-- 移动端菜单按钮 -->
+                <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()">☰</button>
+                
+                <!-- 工具标签 -->
+                <div class="tool-tabs" id="toolTabs">
+                    <!-- 动态生成 -->
+                </div>
+
+                <!-- 当前激活人设 -->
+                <div class="active-agent" id="activeAgent">
+                    <div class="active-agent-info">
+                        <span class="label">当前激活</span>
+                        <span class="value" id="activeAgentName">未激活</span>
+                    </div>
+                    <button class="btn btn-sm" id="activeAgentBtn" onclick="deactivateAgent()" style="display: none;">停用</button>
+                </div>
+
+                <!-- 筛选和搜索 -->
+                <div class="toolbar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="installed" onclick="setFilter('installed')">
+                            已安装 <span class="count" id="installedCount">0</span>
+                        </button>
+                        <button class="filter-btn" data-filter="all" onclick="setFilter('all')">全部</button>
+                        <button class="filter-btn" data-filter="category" onclick="setFilter('category')">按部门</button>
                     </div>
                     <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="搜索智能体..." oninput="filterAgents()">
+                        <input type="text" id="searchInput" placeholder="搜索..." oninput="filterAgents()">
                     </div>
                 </div>
 
-                <div class="content-body">
-                    <!-- 智能体列表 -->
-                    <div class="agent-grid" id="agentGrid">
-                        <!-- 动态生成 -->
-                    </div>
+                <!-- 部门筛选 -->
+                <div class="department-tags" id="departmentTags" style="display: none;">
+                    <!-- 动态生成 -->
                 </div>
 
-                <!-- 底部状态栏 -->
-                <footer class="status-bar">
-                    <div class="status-left">
-                        <span class="status-item" id="activeAgentStatus">
-                            当前激活: <strong>无</strong>
-                        </span>
-                    </div>
-                    <div class="status-right">
-                        <span class="status-item" id="lastOperation">
-                            最近操作: 无
-                        </span>
-                    </div>
-                </footer>
-            </main>
-        </div>
+                <!-- 智能体网格 -->
+                <div class="agent-grid" id="agentGrid">
+                    <!-- 动态生成 -->
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部状态栏 -->
+        <footer class="status-bar">
+            <span id="statusText">就绪</span>
+        </footer>
     </div>
 
     <!-- 安装进度模态框 -->
@@ -85,7 +100,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="installModalTitle">安装进度</h3>
-                <button class="btn btn-icon" onclick="closeInstallModal()">✕</button>
+                <button class="btn-close" onclick="closeInstallModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="progress-bar">
@@ -95,9 +110,6 @@
                     <pre></pre>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeInstallModal()">关闭</button>
-            </div>
         </div>
     </div>
 
@@ -106,12 +118,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>检查更新</h3>
-                <button class="btn btn-icon" onclick="closeUpdateModal()">✕</button>
+                <button class="btn-close" onclick="closeUpdateModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="update-info" id="updateInfo">
-                    <!-- 动态生成 -->
-                </div>
+                <div id="updateInfo"></div>
                 <div class="log-viewer" id="updateLog" style="display: none;">
                     <pre></pre>
                 </div>
@@ -123,47 +133,20 @@
         </div>
     </div>
 
-    <!-- 工具控制模态框 -->
-    <div class="modal" id="toolControlModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="toolControlTitle">工具控制</h3>
-                <button class="btn btn-icon" onclick="closeToolControlModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="tool-status" id="toolStatus">
-                    <!-- 动态生成 -->
-                </div>
-                <div class="log-viewer" id="toolLog">
-                    <pre></pre>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeToolControlModal()">关闭</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 日志模态框 -->
     <div class="modal" id="logModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="logModalTitle">日志查看</h3>
-                <button class="btn btn-icon" onclick="closeLogModal()">✕</button>
+                <h3>日志查看</h3>
+                <button class="btn-close" onclick="closeLogModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="log-list" id="logList">
-                    <!-- 动态生成 -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeLogModal()">关闭</button>
-                <button class="btn" onclick="copyLog()">复制</button>
+                <div class="log-list" id="logList"></div>
             </div>
         </div>
     </div>
 
-    <!-- Toast通知 -->
+    <!-- Toast -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="/static/app.js"></script>
