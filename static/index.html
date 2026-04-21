@@ -473,23 +473,13 @@
             }
             var tool = tools[currentTool];
             if (!tool.installed) {
-                // 工具未安装，先安装工具
+                // 工具未安装
                 if (confirm('工具 ' + tool.name + ' 未安装，是否先安装工具？')) {
                     doInstall(currentTool);
                 }
             } else {
-                // 工具已安装，直接复制智能体到工具目录
-                if (confirm('确定将 ' + id + ' 安装到 ' + tool.name + '？')) {
-                    fetch('/api/agent/' + id + '/install/' + currentTool, {method: 'POST'})
-                        .then(function(r) { return r.json(); })
-                        .then(function(data) {
-                            showToast(data.message);
-                            if (data.success) loadAll();
-                        })
-                        .catch(function(e) {
-                            showToast('安装失败');
-                        });
-                }
+                // 工具已安装，智能体会通过工具的安装脚本批量安装
+                showToast(tool.name + ' 已安装，请使用安装脚本批量安装智能体');
             }
         };
         window.doUninstall = function(id) {
