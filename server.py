@@ -300,6 +300,54 @@ async def get_agents():
     if not REPO_PATH.exists():
         raise HTTPException(status_code=404, detail="仓库不存在，请先克隆agency-agents-zh")
     
+    # 部门名称映射(英文 -> 中文)
+    dept_name_map = {
+        "academic": "学术",
+        "blender": "Blender",
+        "creative": "创意",
+        "data-science": "数据科学",
+        "design": "设计",
+        "devops": "DevOps",
+        "dogfood": "内测",
+        "domain": "领域",
+        "email": "邮件",
+        "engineering": "工程",
+        "examples": "示例",
+        "feeds": "订阅",
+        "finance": "金融",
+        "game-development": "游戏开发",
+        "gaming": "游戏",
+        "github": "GitHub",
+        "homeassistant": "智能家居",
+        "hr": "人力资源",
+        "integrations": "集成",
+        "leisure": "休闲",
+        "legal": "法务",
+        "marketing": "营销",
+        "mlops": "MLOps",
+        "note-taking": "笔记",
+        "paid-media": "付费媒体",
+        "product": "产品",
+        "productivity": "效率",
+        "project-management": "项目管理",
+        "red-teaming": "红队",
+        "research": "研究",
+        "roblox-studio": "Roblox",
+        "sales": "销售",
+        "scripts": "脚本",
+        "smart-home": "智能家居",
+        "social-media": "社交媒体",
+        "software-development": "软件开发",
+        "spatial-computing": "空间计算",
+        "specialized": "专项",
+        "strategy": "战略",
+        "supply-chain": "供应链",
+        "support": "支持",
+        "testing": "测试",
+        "unity": "Unity",
+        "unreal-engine": "Unreal"
+    }
+    
     agents = {}
     departments = {}
     
@@ -307,7 +355,8 @@ async def get_agents():
     for category_dir in REPO_PATH.iterdir():
         if category_dir.is_dir() and not category_dir.name.startswith('.'):
             category_name = category_dir.name
-            departments[category_name] = []
+            dept_cn = dept_name_map.get(category_name, category_name)
+            departments[dept_cn] = []
             
             for agent_file in category_dir.glob('*.md'):
                 if agent_file.name not in ['README.md', 'CONTRIBUTING.md']:
@@ -329,10 +378,11 @@ async def get_agents():
                     
                     agents[agent_name] = {
                         "name": display_name,
-                        "category": category_name,
+                        "category": dept_cn,
+                        "category_en": category_name,
                         "file": str(agent_file.relative_to(REPO_PATH))
                     }
-                    departments[category_name].append(agent_name)
+                    departments[dept_cn].append(agent_name)
     
     return {"agents": agents, "departments": departments}
 
