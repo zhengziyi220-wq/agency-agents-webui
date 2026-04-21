@@ -8,19 +8,21 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: #0f172a; color: #f1f5f9; }
         .app { display: flex; height: 100vh; }
-        .sidebar { width: 260px; background: #1e293b; border-right: 1px solid #475569; overflow-y: auto; }
-        .sidebar-header { padding: 16px; border-bottom: 1px solid #475569; }
+        .sidebar { width: 280px; background: #1e293b; border-right: 1px solid #475569; overflow-y: auto; }
+        .sidebar-header { padding: 16px; border-bottom: 1px solid #475569; display: flex; justify-content: space-between; align-items: center; }
         .sidebar-header h2 { font-size: 16px; }
-        .tool-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #334155; }
+        .tool-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #334155; }
         .tool-item:hover { background: #334155; }
-        .tool-item.active { background: #6366f1; }
-        .tool-name { font-weight: 600; font-size: 14px; }
-        .tool-status { font-size: 12px; color: #94a3b8; }
+        .tool-item.active { background: rgba(99,102,241,0.2); border-left: 3px solid #6366f1; }
+        .tool-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .tool-status { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .tool-actions { display: flex; gap: 4px; flex-wrap: wrap; }
         .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .header { padding: 16px; background: #1e293b; border-bottom: 1px solid #475569; display: flex; justify-content: space-between; align-items: center; }
-        .filters { padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #475569; display: flex; gap: 8px; }
-        .filter-btn { padding: 6px 12px; border: none; border-radius: 6px; background: #334155; color: #f1f5f9; cursor: pointer; }
+        .filters { padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #475569; display: flex; gap: 8px; align-items: center; }
+        .filter-btn { padding: 6px 12px; border: none; border-radius: 6px; background: #334155; color: #f1f5f9; cursor: pointer; font-size: 12px; }
         .filter-btn.active { background: #6366f1; }
+        .filter-btn:hover { background: #475569; }
         .agent-list { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; align-content: start; }
         .agent-card { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 14px; }
         .agent-card:hover { border-color: #6366f1; }
@@ -31,10 +33,13 @@
         .badge-installed { background: #10b981; color: white; }
         .badge-active { background: #6366f1; color: white; }
         .agent-actions { margin-top: 10px; display: flex; gap: 6px; }
-        .btn { padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-primary { background: #6366f1; color: white; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-default { background: #475569; color: white; }
+        .btn { padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; color: white; }
+        .btn-primary { background: #6366f1; }
+        .btn-success { background: #10b981; }
+        .btn-warning { background: #f59e0b; }
+        .btn-danger { background: #ef4444; }
+        .btn-default { background: #475569; }
+        .btn:hover { opacity: 0.8; }
         .empty { color: #94a3b8; text-align: center; padding: 40px; grid-column: 1/-1; }
         .active-bar { padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #475569; display: flex; justify-content: space-between; align-items: center; }
         .active-label { font-size: 12px; color: #94a3b8; }
@@ -46,7 +51,13 @@
         .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
         .modal-body pre { font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
         .modal-footer { padding: 16px; border-top: 1px solid #475569; display: flex; justify-content: flex-end; gap: 8px; }
+        .progress-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+        .progress-fill { height: 100%; background: #6366f1; width: 0%; transition: width 0.3s; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 12px 16px; z-index: 200; }
+        .search-input { margin-left: auto; padding: 6px 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9; font-size: 12px; }
+        .dept-tags { padding: 8px 16px; display: none; flex-wrap: wrap; gap: 6px; background: #1e293b; border-bottom: 1px solid #475569; }
+        .dept-tag { padding: 4px 10px; border-radius: 16px; font-size: 11px; background: #334155; color: #94a3b8; cursor: pointer; border: none; }
+        .dept-tag.active { background: #6366f1; color: white; }
     </style>
 </head>
 <body>
@@ -54,6 +65,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>🎭 工具分区</h2>
+                <button class="btn btn-default" onclick="refreshAll()">刷新</button>
             </div>
             <div id="toolList"></div>
         </aside>
@@ -73,12 +85,14 @@
                 <button class="filter-btn active" onclick="setFilter('installed')">已安装 (<span id="installedCount">0</span>)</button>
                 <button class="filter-btn" onclick="setFilter('all')">全部</button>
                 <button class="filter-btn" onclick="setFilter('category')">按部门</button>
-                <input type="text" id="search" placeholder="搜索..." oninput="render()" style="margin-left:auto;padding:6px 10px;background:#334155;border:1px solid #475569;border-radius:6px;color:#f1f5f9;">
+                <input type="text" class="search-input" id="search" placeholder="搜索..." oninput="render()">
             </div>
-            <div id="deptTags" style="padding:8px 16px;display:none;flex-wrap:wrap;gap:6px;"></div>
+            <div class="dept-tags" id="deptTags"></div>
             <div class="agent-list" id="agentList"></div>
         </main>
     </div>
+    
+    <!-- 查看详情模态框 -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -92,31 +106,69 @@
             </div>
         </div>
     </div>
+    
+    <!-- 安装进度模态框 -->
+    <div class="modal" id="installModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="installTitle">安装进度</h3>
+                <button onclick="closeInstallModal()" style="background:none;border:none;color:#f1f5f9;cursor:pointer;font-size:18px">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="progress-bar"><div class="progress-fill" id="installProgress"></div></div>
+                <pre id="installLog"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeInstallModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 日志模态框 -->
+    <div class="modal" id="logModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="logTitle">日志</h3>
+                <button onclick="closeLogModal()" style="background:none;border:none;color:#f1f5f9;cursor:pointer;font-size:18px">✕</button>
+            </div>
+            <div class="modal-body" id="logContent"></div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeLogModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="toast" class="toast" style="display:none"></div>
+    
     <script>
         let tools={}, agents={}, depts={}, active={}, currentTool=null, filter='installed', currentDept='all';
         
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('url').textContent = location.origin;
             await load();
-            // 选第一个已安装工具
             const installed = Object.entries(tools).find(([,t]) => t.installed);
             if (installed) selectTool(installed[0]);
             else if (Object.keys(tools).length) selectTool(Object.keys(tools)[0]);
+            setInterval(load, 5000);
         });
         
         async function load() {
-            const [t, a, ac] = await Promise.all([
-                fetch('/api/tools').then(r=>r.json()),
-                fetch('/api/agents').then(r=>r.json()),
-                fetch('/api/active-agents').then(r=>r.json())
-            ]);
-            tools = t.tools;
-            agents = a.agents;
-            depts = a.departments;
-            active = ac;
-            renderTools();
+            try {
+                const [t, a, ac] = await Promise.all([
+                    fetch('/api/tools').then(r=>r.json()),
+                    fetch('/api/agents').then(r=>r.json()),
+                    fetch('/api/active-agents').then(r=>r.json())
+                ]);
+                tools = t.tools;
+                agents = a.agents;
+                depts = a.departments;
+                active = ac;
+                renderTools();
+                if (currentTool) render();
+            } catch(e) { console.error(e); }
         }
+        
+        async function refreshAll() { await load(); toast('已刷新'); }
         
         function renderTools() {
             const el = document.getElementById('toolList');
@@ -125,6 +177,14 @@
                 <div class="tool-item ${currentTool===name?'active':''}" onclick="selectTool('${name}')">
                     <div class="tool-name">${t.name}</div>
                     <div class="tool-status">${t.running?'🟢 运行中':t.installed?'🔵 已安装':'⚪ 未安装'} · ${t.agent_count}个智能体</div>
+                    <div class="tool-actions">
+                        ${!t.installed?`<button class="btn btn-success" onclick="event.stopPropagation();installTool('${name}')">安装</button>`:''}
+                        ${t.can_start&&!t.running?`<button class="btn btn-success" onclick="event.stopPropagation();startTool('${name}')">启动</button>`:''}
+                        ${t.can_stop&&t.running?`<button class="btn btn-warning" onclick="event.stopPropagation();stopTool('${name}')">停止</button>`:''}
+                        ${t.can_restart?`<button class="btn btn-default" onclick="event.stopPropagation();restartTool('${name}')">重启</button>`:''}
+                        ${t.has_web&&t.running?`<button class="btn btn-primary" onclick="event.stopPropagation();window.open('${t.web_url}')">打开</button>`:''}
+                        <button class="btn btn-default" onclick="event.stopPropagation();showLogs('${name}')">日志</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -133,15 +193,14 @@
             currentTool = name;
             filter = 'installed';
             currentDept = 'all';
+            document.querySelectorAll('.filter-btn').forEach((b,i) => b.classList.toggle('active', i===0));
             renderTools();
             render();
         }
         
         function setFilter(f) {
             filter = f;
-            document.querySelectorAll('.filter-btn').forEach((b,i) => {
-                b.classList.toggle('active', ['installed','all','category'][i]===f);
-            });
+            document.querySelectorAll('.filter-btn').forEach((b,i) => b.classList.toggle('active', ['installed','all','category'][i]===f));
             render();
         }
         
@@ -150,31 +209,25 @@
             const tool = tools[currentTool];
             document.getElementById('installedCount').textContent = tool.agent_count;
             
-            // 更新激活状态
             const ac = active[currentTool];
             document.getElementById('activeAgent').textContent = ac ? `${ac.agent} (${tool.name})` : '未激活';
             document.getElementById('deactivateBtn').style.display = ac ? 'block' : 'none';
             
-            // 部门标签
             const deptEl = document.getElementById('deptTags');
             if (filter === 'category') {
                 deptEl.style.display = 'flex';
-                deptEl.innerHTML = `<button class="filter-btn ${currentDept==='all'?'active':''}" onclick="selectDept('all')">全部</button>` +
+                deptEl.innerHTML = `<button class="dept-tag ${currentDept==='all'?'active':''}" onclick="selectDept('all')">全部</button>` +
                     Object.keys(depts).filter(d=>depts[d].length).map(d => 
-                        `<button class="filter-btn ${currentDept===d?'active':''}" onclick="selectDept('${d}')">${d}</button>`
+                        `<button class="dept-tag ${currentDept===d?'active':''}" onclick="selectDept('${d}')">${d}</button>`
                     ).join('');
-            } else {
-                deptEl.style.display = 'none';
-            }
+            } else { deptEl.style.display = 'none'; }
             
-            // 过滤
             let items = Object.entries(agents);
             if (filter === 'installed') items = items.filter(([n]) => tool.agents.includes(n));
             if (filter === 'category' && currentDept !== 'all') items = items.filter(([,a]) => a.category === currentDept);
             const search = document.getElementById('search').value.toLowerCase();
             if (search) items = items.filter(([n,a]) => n.includes(search) || a.name.includes(search) || a.category.includes(search));
             
-            // 渲染
             const list = document.getElementById('agentList');
             if (!items.length) { list.innerHTML='<div class="empty">暂无智能体</div>'; return; }
             list.innerHTML = items.map(([id, a]) => {
@@ -186,7 +239,9 @@
                     <div class="agent-id">${id}</div>
                     <div class="agent-actions">
                         <button class="btn btn-default" onclick="viewAgent('${id}')">查看</button>
-                        ${installed?`<button class="btn btn-primary" onclick="toggleAgent('${id}')">${isActive?'已激活':'激活'}</button>`:`<button class="btn btn-default" onclick="toast('需要先安装')">激活</button>`}
+                        ${installed?`<button class="btn btn-primary" onclick="toggleAgent('${id}')">${isActive?'已激活':'激活'}</button>
+                        <button class="btn btn-danger" onclick="uninstallAgent('${id}')">卸载</button>`:
+                        `<button class="btn btn-success" onclick="installAgent('${id}')">安装</button>`}
                     </div>
                 </div>`;
             }).join('');
@@ -194,34 +249,99 @@
         
         function selectDept(d) { currentDept = d; render(); }
         
+        // 安装工具
+        async function installTool(name) {
+            if (!confirm(`确定安装 ${tools[name].name}？`)) return;
+            showInstallModal(`安装 ${tools[name].name}`);
+            const res = await fetch(`/api/install/${name}`, {method:'POST'});
+            const data = await res.json();
+            if (data.success) pollInstall(data.task_id);
+            else { closeInstallModal(); toast('安装失败'); }
+        }
+        
+        async function pollInstall(taskId) {
+            const res = await fetch(`/api/install/status/${taskId}`);
+            const data = await res.json();
+            document.getElementById('installLog').textContent = data.log || '';
+            if (data.status === 'completed') {
+                document.getElementById('installProgress').style.width = '100%';
+                toast('安装完成');
+                setTimeout(() => { closeInstallModal(); load(); }, 1000);
+            } else if (data.status === 'failed') {
+                toast('安装失败');
+            } else {
+                setTimeout(() => pollInstall(taskId), 500);
+            }
+        }
+        
+        function showInstallModal(title) {
+            document.getElementById('installTitle').textContent = title;
+            document.getElementById('installProgress').style.width = '0%';
+            document.getElementById('installLog').textContent = '';
+            document.getElementById('installModal').classList.add('show');
+        }
+        function closeInstallModal() { document.getElementById('installModal').classList.remove('show'); }
+        
+        // 工具控制
+        async function startTool(name) {
+            const res = await fetch(`/api/tool/${name}/start`, {method:'POST'});
+            const data = await res.json();
+            toast(data.message);
+            load();
+        }
+        async function stopTool(name) {
+            const res = await fetch(`/api/tool/${name}/stop`, {method:'POST'});
+            const data = await res.json();
+            toast(data.message);
+            load();
+        }
+        async function restartTool(name) {
+            const res = await fetch(`/api/tool/${name}/restart`, {method:'POST'});
+            const data = await res.json();
+            toast(data.message);
+            load();
+        }
+        
+        // 日志
+        async function showLogs(name) {
+            const res = await fetch(`/api/logs/${name}`);
+            const data = await res.json();
+            document.getElementById('logTitle').textContent = `${tools[name].name} 日志`;
+            document.getElementById('logContent').innerHTML = data.logs.length ? 
+                data.logs.map(l => `<div style="margin-bottom:12px"><strong>${l.file}</strong><pre>${l.content}</pre></div>`).join('') : 
+                '<div class="empty">暂无日志</div>';
+            document.getElementById('logModal').classList.add('show');
+        }
+        function closeLogModal() { document.getElementById('logModal').classList.remove('show'); }
+        
+        // 智能体操作
         async function toggleAgent(id) {
             const res = await fetch(`/api/active-agents/${currentTool}/${id}`, {method:'POST'});
             const data = await res.json();
-            if (data.success) {
-                active[currentTool] = {agent: id};
-                toast(data.message);
-                render();
-            }
+            if (data.success) { active[currentTool] = {agent: id}; toast(data.message); render(); }
         }
-        
         async function deactivateAgent() {
             const res = await fetch(`/api/active-agents/${currentTool}`, {method:'DELETE'});
             const data = await res.json();
-            if (data.success) {
-                active[currentTool] = null;
-                toast(data.message);
-                render();
-            }
+            if (data.success) { active[currentTool] = null; toast(data.message); render(); }
+        }
+        async function installAgent(id) {
+            toast(`安装 ${id}`);
+            await load();
+        }
+        async function uninstallAgent(id) {
+            if (!confirm(`确定卸载 ${id}？`)) return;
+            toast('卸载功能开发中');
         }
         
+        // 查看详情
         async function viewAgent(id) {
             const res = await fetch(`/api/agent/${id}`);
             const data = await res.json();
-            document.getElementById('modalTitle').textContent = data.id;
+            document.getElementById('modalTitle').textContent = `${data.id} (${data.file})`;
             document.getElementById('modalContent').textContent = data.content;
             document.getElementById('modal').classList.add('show');
         }
-        
         function closeModal() { document.getElementById('modal').classList.remove('show'); }
         function copyModal() { navigator.clipboard.writeText(document.getElementById('modalContent').textContent); toast('已复制'); }
         
