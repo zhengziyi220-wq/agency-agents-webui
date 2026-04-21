@@ -441,6 +441,35 @@ async def set_active_agent(tool_name: str, agent_name: str):
     return {"success": True, "message": f"已激活 {agent_name}"}
 
 
+@app.delete("/api/active-agents/{tool_name}")
+async def deactivate_agent(tool_name: str):
+    """取消激活人设"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    active_agents = load_json_file(ACTIVE_AGENTS_FILE, {})
+    
+    if tool_name not in active_agents:
+        return {"success": True, "message": f"{config.name} 未激活任何人设"}
+    
+    # 移除激活状态
+    removed_agent = active_agents.pop(tool_name, None)
+    save_json_file(ACTIVE_AGENTS_FILE, active_agents)
+    
+    # 如果需要重启
+    if config.restart_required:
+        return {
+            "success": True,
+            "message": f"已取消激活 {removed_agent['agent'] if removed_agent else ''}，需要重启 {config.name} 生效",
+            "need_restart": True,
+            "restart_cmd": config.restart_cmd
+        }
+    
+    return {"success": True, "message": f"已取消激活，恢复默认状态"}
+
+
 @app.post("/api/install/{tool_name}")
 async def install_tool(tool_name: str, background_tasks: BackgroundTasks, categories: Optional[str] = None):
     """一键安装工具"""

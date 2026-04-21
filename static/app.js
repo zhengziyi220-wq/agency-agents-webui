@@ -303,8 +303,26 @@ async function toggleAgent(agentId) {
 }
 
 async function deactivateAgent() {
-    if (currentTool && activeAgents[currentTool]) {
-        await toggleAgent(activeAgents[currentTool].agent);
+    if (!currentTool) return;
+    
+    try {
+        const res = await fetch(`/api/active-agents/${currentTool}`, { method: 'DELETE' });
+        const data = await res.json();
+        
+        if (data.success) {
+            activeAgents[currentTool] = null;
+            showToast(data.message, 'success');
+            
+            if (data.need_restart) {
+                showToast(`需要重启 ${tools[currentTool].name}`, 'warning');
+            }
+            
+            await loadAgents();
+            updateActiveAgent();
+            renderAgents();
+        }
+    } catch (e) {
+        showToast('取消激活失败', 'error');
     }
 }
 
