@@ -771,6 +771,77 @@ async def get_agent_content(agent_id: str):
     raise HTTPException(status_code=404, detail=f"智能体 {agent_id} 不存在")
 
 
+@app.post("/api/agent/{agent_id}/install/{tool_name}")
+async def install_single_agent(agent_id: str, tool_name: str):
+    """安装单个智能体到指定工具"""
+    configs = load_tool_configs()
+    if tool_name not in configs:
+        raise HTTPException(status_code=404, detail=f"工具 {tool_name} 不存在")
+    
+    config = configs[tool_name]
+    skills_path = expand_path(config.skills_path)
+    
+    if not skills_path.exists():
+        return {"success": False, "message": f"{config.name} 未安装，请先安装工具"}
+    
+    # 查找智能体文件
+    agent_file = None
+    for category_dir in REPO_PATH.iterdir():
+        if category_dir.is_dir() and not category_dir.name.startswith('.'):
+            potential_file = category_dir / f"{agent_id}.md"
+            if potential_file.exists():
+                agent_file = potential_file
+                break
+    
+    if not agent_file:
+        raise HTTPException(status_code=404, detail=f"智能体 {agent_id} 不存在")
+    
+    try:
+        # 根据工具类型决定安装方式
+        if tool_name == 'openclaw':
+            # OpenClaw需要转换格式
+            convert_dir = REPO_PATH / "integrations" / "openclaw" / agent_id
+            if convert_dir.exists():
+                # 复制转换后的文件
+                import shutil
+                dest = skills_path / agent_id
+                if dest.exists():
+                    shutil.rmtree(dest)
+                shutil.copytree(convert_dir, dest)
+                return {"success": True, "message": f"已安装 {agent_id} 到 {config.name}"}
+            else:
+                # 直接复制原文件
+                dest = skills_path / f"{agent_id}.md"
+                shutil.copy2(agent_file, dest)
+                return {"success": True, "message": f"已安装 {agent_id} 到 {config.name}"}
+        elif tool_name == 'hermes':
+            # Hermes需要转换格式
+            convert_dir = REPO_PATH / "integrations" / "hermes"
+            # 查找在哪个分类下
+            for cat_dir in convert_dir.iterdir():
+                if cat_dir.is_dir():
+                    skill_file = cat_dir / agent_id / "SKILL.md"
+                    if skill_file.exists():
+                        import shutil
+                        dest = skills_path / cat_dir.name / agent_id
+                        dest.mkdir(parents=True, exist_ok=True)
+                        shutil.copytree(cat_dir / agent_id, dest, dirs_exist_ok=True)
+                        return {"success": True, "message": f"已安装 {agent_id} 到 {config.name}"}
+            # 没有转换文件，直接复制
+            import shutil
+            dest = skills_path / f"{agent_id}.md"
+            shutil.copy2(agent_file, dest)
+            return {"success": True, "message": f"已安装 {agent_id} 到 {config.name}"}
+        else:
+            # 其他工具直接复制
+            import shutil
+            dest = skills_path / f"{agent_id}.md"
+            shutil.copy2(agent_file, dest)
+            return {"success": True, "message": f"已安装 {agent_id} 到 {config.name}"}
+    except Exception as e:
+        return {"success": False, "message": f"安装失败: {str(e)}"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8888)

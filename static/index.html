@@ -478,8 +478,18 @@
                     doInstall(currentTool);
                 }
             } else {
-                // 工具已安装，提示用户使用工具的安装脚本
-                showToast('请使用 ' + tool.name + ' 的安装脚本安装智能体');
+                // 工具已安装，直接复制智能体到工具目录
+                if (confirm('确定将 ' + id + ' 安装到 ' + tool.name + '？')) {
+                    fetch('/api/agent/' + id + '/install/' + currentTool, {method: 'POST'})
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            showToast(data.message);
+                            if (data.success) loadAll();
+                        })
+                        .catch(function(e) {
+                            showToast('安装失败');
+                        });
+                }
             }
         };
         window.doUninstall = function(id) {
