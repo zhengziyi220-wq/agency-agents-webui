@@ -441,7 +441,17 @@
             });
         };
         window.doInstallAgent = function(id) {
-            showToast('请先安装工具');
+            if (!currentTool) {
+                showToast('请先选择工具');
+                return;
+            }
+            var tool = tools[currentTool];
+            if (!tool.installed) {
+                // 工具未安装，先安装工具
+                doInstall(currentTool);
+            } else {
+                showToast('该智能体需要通过工具安装脚本安装');
+            }
         };
         window.doUninstall = function(id) {
             if (!confirm('确定卸载 ' + id + '？')) return;
