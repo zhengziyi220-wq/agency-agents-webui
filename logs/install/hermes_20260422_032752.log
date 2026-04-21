@@ -1,0 +1,25 @@
+
+AI 智能体专家团队 -- 转换为工具专用格式
+  仓库:   /home/zy/agency-agents-zh
+  输出:   /home/zy/agency-agents-zh/integrations
+  工具:   hermes
+  日期:   2026-04-22
+
+正在转换: hermes
+[OK]  已转换 211 个智能体 (hermes)
+
+[OK]  完成。共转换: 211
+
+
+AI 智能体专家团队 -- 安装智能体
+  仓库:     /home/zy/agency-agents-zh
+  安装到:   hermes
+
+[OK]  Hermes Agent: 211 个 skills -> /home/zy/.hermes/skills
+[!!]  Hermes Discord 模式对斜杠命令总长有 8000 字符上限（error 50035）。
+[!!]  若要在 Discord 中使用，建议用 --category <名称> 按分类分批安装。
+
+[OK]  完成！已安装 1 个工具。
+
+  运行 ./scripts/convert.sh 重新生成集成文件。
+
