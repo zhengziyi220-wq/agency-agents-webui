@@ -18,15 +18,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function init() {
+    console.log('初始化开始');
     await refreshTools();
+    console.log('工具加载完成:', Object.keys(tools).length);
     await loadAgents();
+    console.log('智能体加载完成:', Object.keys(agents).length);
     updateUrl();
     
     // 自动选择第一个已安装的工具
     const installedTools = Object.entries(tools).filter(([, t]) => t.installed);
+    console.log('已安装工具:', installedTools.map(([name]) => name));
+    
     if (installedTools.length > 0) {
+        console.log('选择工具:', installedTools[0][0]);
         selectTool(installedTools[0][0]);
     } else if (Object.keys(tools).length > 0) {
+        console.log('选择第一个工具:', Object.keys(tools)[0]);
         selectTool(Object.keys(tools)[0]);
     }
 }
