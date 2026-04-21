@@ -255,7 +255,6 @@
                 return;
             }
             var tool = tools[currentTool];
-            document.getElementById('installedCount').textContent = tool.agent_count;
             
             // 更新顶部工具信息和按钮
             document.getElementById('currentToolName').textContent = tool.name + (tool.installed ? ' (已安装)' : ' (未安装)');
@@ -265,6 +264,16 @@
             
             var ac = active[currentTool];
             document.getElementById('deactivateBtn').style.display = ac ? 'block' : 'none';
+            
+            // 工具未安装，显示安装提示
+            if (!tool.installed) {
+                document.getElementById('installedCount').textContent = '0';
+                document.getElementById('agentList').innerHTML = '<div class="empty" style="grid-column:1/-1"><h3 style="margin-bottom:16px">' + tool.name + ' 未安装</h3><p style="margin-bottom:16px;color:#94a3b8">点击上方"安装此工具"按钮安装</p><button class="btn btn-success" onclick="doInstall(\'' + currentTool + '\')">安装 ' + tool.name + '</button></div>';
+                document.getElementById('deptTags').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('installedCount').textContent = tool.agent_count;
             
             var deptEl = document.getElementById('deptTags');
             if (filter === 'category') {
@@ -303,23 +312,16 @@
             for (var i = 0; i < filtered.length; i++) {
                 var id = filtered[i].id;
                 var a = filtered[i].agent;
-                var installed = tool.agents.indexOf(id) !== -1;
                 var isActive = ac && ac.agent === id;
                 html += '<div class="agent-card">';
                 html += '<div class="agent-title">' + a.name;
                 if (isActive) html += '<span class="badge badge-active">激活</span>';
-                else if (installed) html += '<span class="badge badge-installed">已安装</span>';
                 html += '</div>';
                 html += '<div class="agent-category">' + a.category + '</div>';
                 html += '<div class="agent-id">' + id + '</div>';
                 html += '<div class="agent-actions">';
                 html += '<button class="btn btn-default" onclick="viewAgent(\'' + id + '\')">查看</button>';
-                if (installed) {
-                    html += '<button class="btn btn-primary" onclick="doToggle(\'' + id + '\')">' + (isActive ? '已激活' : '激活') + '</button>';
-                    html += '<button class="btn btn-danger" onclick="doUninstall(\'' + id + '\')">卸载</button>';
-                } else {
-                    html += '<button class="btn btn-success" onclick="doInstallAgent(\'' + id + '\')">安装</button>';
-                }
+                html += '<button class="btn btn-primary" onclick="doToggle(\'' + id + '\')">' + (isActive ? '已激活' : '激活') + '</button>';
                 html += '</div></div>';
             }
             list.innerHTML = html;
@@ -465,26 +467,6 @@
                     renderAgents();
                 }
             });
-        };
-        window.doInstallAgent = function(id) {
-            if (!currentTool) {
-                showToast('请先选择工具');
-                return;
-            }
-            var tool = tools[currentTool];
-            if (!tool.installed) {
-                // 工具未安装
-                if (confirm('工具 ' + tool.name + ' 未安装，是否先安装工具？')) {
-                    doInstall(currentTool);
-                }
-            } else {
-                // 工具已安装，智能体会通过工具的安装脚本批量安装
-                showToast(tool.name + ' 已安装，请使用安装脚本批量安装智能体');
-            }
-        };
-        window.doUninstall = function(id) {
-            if (!confirm('确定卸载 ' + id + '？')) return;
-            showToast('卸载功能开发中');
         };
         
         // 查看详情
