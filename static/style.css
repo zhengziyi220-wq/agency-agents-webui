@@ -335,6 +335,49 @@ body {
     gap: 16px;
 }
 
+/* 筛选区域 */
+.filter-section {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+/* 激活人设区域 */
+.active-agent-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--primary);
+}
+
+/* 部门筛选 */
+.department-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.dept-tag {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dept-tag:hover {
+    background: var(--border);
+}
+
+.dept-tag.active {
+    background: var(--primary);
+    color: white;
+}
+
 .agent-card {
     background: var(--bg-secondary);
     border-radius: 8px;
