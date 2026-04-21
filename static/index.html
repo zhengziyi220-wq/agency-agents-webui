@@ -340,7 +340,7 @@
             document.getElementById('installStatus').textContent = '准备中...';
             document.getElementById('installStatus').style.color = '#94a3b8';
             document.getElementById('installLog').textContent = '';
-            document.getElementById('installModal').classList.add('show');
+            document.getElementById('installModal').style.display = 'flex';
         }
         function closeInstallModal() { 
             document.getElementById('installModal').style.display = 'none'; 
@@ -374,9 +374,9 @@
             document.getElementById('logContent').innerHTML = data.logs.length ? 
                 data.logs.map(l => `<div style="margin-bottom:12px"><strong>${l.file}</strong><pre>${l.content}</pre></div>`).join('') : 
                 '<div class="empty">暂无日志</div>';
-            document.getElementById('logModal').classList.add('show');
+            document.getElementById('logModal').style.display = 'flex';
         }
-        function closeLogModal() { document.getElementById('logModal').classList.remove('show'); }
+        function closeLogModal() { document.getElementById('logModal').style.display = 'none'; }
         
         // 智能体操作
         async function toggleAgent(id) {
@@ -404,9 +404,9 @@
             const data = await res.json();
             document.getElementById('modalTitle').textContent = `${data.id} (${data.file})`;
             document.getElementById('modalContent').textContent = data.content;
-            document.getElementById('modal').classList.add('show');
+            document.getElementById('modal').style.display = 'flex';
         }
-        function closeModal() { document.getElementById('modal').classList.remove('show'); }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
         function copyModal() { navigator.clipboard.writeText(document.getElementById('modalContent').textContent); toast('已复制'); }
         
         function toast(msg) {
