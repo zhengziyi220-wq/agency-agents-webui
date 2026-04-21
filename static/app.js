@@ -232,13 +232,13 @@ function renderAgentGrid() {
         
         card.innerHTML = `
             <div class="agent-card-header">
-                <span class="agent-name">${agentName}</span>
+                <span class="agent-name">${agent.name}</span>
                 ${isActive ? '<span class="agent-badge active">激活</span>' : 
                   isInstalled ? '<span class="agent-badge installed">已安装</span>' : ''}
             </div>
             <div class="agent-card-body">
                 <div class="agent-category">${agent.category}</div>
-                <div class="agent-desc">${agent.file}</div>
+                <div class="agent-desc" style="font-size: 11px; color: var(--text-secondary);">${agentName}</div>
             </div>
             <div class="agent-card-actions">
                 ${isInstalled ? 

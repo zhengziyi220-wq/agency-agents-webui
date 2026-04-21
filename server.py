@@ -312,8 +312,23 @@ async def get_agents():
             for agent_file in category_dir.glob('*.md'):
                 if agent_file.name not in ['README.md', 'CONTRIBUTING.md']:
                     agent_name = agent_file.stem
+                    
+                    # 从文件中提取中文名称
+                    display_name = agent_name
+                    try:
+                        with open(agent_file, 'r', encoding='utf-8') as f:
+                            content = f.read(500)  # 只读取前500字符
+                            # 查找 name: 字段
+                            if 'name:' in content:
+                                for line in content.split('\n'):
+                                    if line.strip().startswith('name:'):
+                                        display_name = line.split(':', 1)[1].strip()
+                                        break
+                    except:
+                        pass
+                    
                     agents[agent_name] = {
-                        "name": agent_name,
+                        "name": display_name,
                         "category": category_name,
                         "file": str(agent_file.relative_to(REPO_PATH))
                     }
