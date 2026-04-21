@@ -498,8 +498,19 @@
             });
         };
         window.copyDetail = function() {
-            navigator.clipboard.writeText(document.getElementById('detailContent').textContent);
-            showToast('已复制');
+            var content = document.getElementById('detailContent').textContent;
+            navigator.clipboard.writeText(content).then(function() {
+                showToast('已复制');
+            }).catch(function() {
+                // 备用方法
+                var textArea = document.createElement('textarea');
+                textArea.value = content;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('已复制');
+            });
         };
         
         // 显示激活指令
