@@ -207,6 +207,7 @@ function renderAgentGrid() {
     // 智能体卡片
     const grid = document.createElement('div');
     grid.className = 'agent-grid';
+    grid.style.cssText = 'width: 100%;';
     
     // 根据筛选模式过滤智能体
     let filteredAgents = Object.entries(agents);
