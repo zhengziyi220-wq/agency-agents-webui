@@ -17,7 +17,7 @@
     "stop_cmd": "openclaw gateway stop",
     "restart_cmd": "openclaw gateway restart",
     "log_path": "~/.openclaw/logs/",
-    "activate_instruction": "在OpenClaw对话中使用: /skill {agent_id}"
+    "activate_instruction": "在OpenClaw对话中使用: /skill {agent_name}"
   },
   "hermes": {
     "name": "Hermes Agent",
@@ -57,7 +57,7 @@
     "stop_cmd": null,
     "restart_cmd": null,
     "log_path": "~/.hermes/logs/",
-    "activate_instruction": "在Hermes对话中使用: 使用 {agent_id} 技能"
+    "activate_instruction": "在Hermes对话中使用: 使用 {agent_name} 技能"
   },
   "claude_code": {
     "name": "Claude Code",
