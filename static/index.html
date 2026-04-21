@@ -114,9 +114,10 @@
                 <h3 id="installTitle">安装进度</h3>
                 <button onclick="closeInstallModal()" style="background:none;border:none;color:#f1f5f9;cursor:pointer;font-size:18px">✕</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height:60vh">
                 <div class="progress-bar"><div class="progress-fill" id="installProgress"></div></div>
-                <pre id="installLog"></pre>
+                <div id="installStatus" style="margin-bottom:8px;font-size:13px;color:#94a3b8">准备中...</div>
+                <pre id="installLog" style="background:#0f172a;padding:12px;border-radius:6px;max-height:40vh;overflow-y:auto;font-size:12px"></pre>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-default" onclick="closeInstallModal()">关闭</button>
@@ -253,30 +254,72 @@
         async function installTool(name) {
             if (!confirm(`确定安装 ${tools[name].name}？`)) return;
             showInstallModal(`安装 ${tools[name].name}`);
+            document.getElementById('installStatus').textContent = '正在启动安装任务...';
             const res = await fetch(`/api/install/${name}`, {method:'POST'});
             const data = await res.json();
-            if (data.success) pollInstall(data.task_id);
-            else { closeInstallModal(); toast('安装失败'); }
+            if (data.success) {
+                document.getElementById('installStatus').textContent = '安装进行中...';
+                pollInstall(data.task_id);
+            } else {
+                closeInstallModal();
+                toast('安装失败: ' + (data.message || '未知错误'));
+            }
         }
         
         async function pollInstall(taskId) {
-            const res = await fetch(`/api/install/status/${taskId}`);
-            const data = await res.json();
-            document.getElementById('installLog').textContent = data.log || '';
-            if (data.status === 'completed') {
-                document.getElementById('installProgress').style.width = '100%';
-                toast('安装完成');
-                setTimeout(() => { closeInstallModal(); load(); }, 1000);
-            } else if (data.status === 'failed') {
-                toast('安装失败');
-            } else {
+            try {
+                const res = await fetch(`/api/install/status/${taskId}`);
+                const data = await res.json();
+                
+                // 更新日志
+                const logEl = document.getElementById('installLog');
+                if (data.log) {
+                    logEl.textContent = data.log;
+                    logEl.scrollTop = logEl.scrollHeight; // 自动滚动到底部
+                }
+                
+                // 更新状态
+                const statusEl = document.getElementById('installStatus');
+                const progressEl = document.getElementById('installProgress');
+                
+                if (data.status === 'running') {
+                    // 根据日志内容估计进度
+                    const log = data.log || '';
+                    let progress = 10;
+                    if (log.includes('convert')) progress = 30;
+                    if (log.includes('install')) progress = 60;
+                    if (log.includes('copy')) progress = 80;
+                    progressEl.style.width = progress + '%';
+                    statusEl.textContent = `安装进行中... (${data.log ? data.log.split('\n').length : 0} 行日志)`;
+                    setTimeout(() => pollInstall(taskId), 300);
+                } else if (data.status === 'completed') {
+                    progressEl.style.width = '100%';
+                    statusEl.textContent = '✅ 安装完成！';
+                    statusEl.style.color = '#10b981';
+                    toast('安装完成');
+                    setTimeout(() => { closeInstallModal(); load(); }, 1500);
+                } else if (data.status === 'failed') {
+                    progressEl.style.width = '100%';
+                    progressEl.style.background = '#ef4444';
+                    statusEl.textContent = '❌ 安装失败';
+                    statusEl.style.color = '#ef4444';
+                    toast('安装失败，请查看日志');
+                } else {
+                    statusEl.textContent = '等待中...';
+                    setTimeout(() => pollInstall(taskId), 300);
+                }
+            } catch(e) {
+                console.error('轮询失败:', e);
                 setTimeout(() => pollInstall(taskId), 500);
             }
         }
         
         function showInstallModal(title) {
             document.getElementById('installTitle').textContent = title;
-            document.getElementById('installProgress').style.width = '0%';
+            document.getElementById('installProgress').style.width = '5%';
+            document.getElementById('installProgress').style.background = '#6366f1';
+            document.getElementById('installStatus').textContent = '准备中...';
+            document.getElementById('installStatus').style.color = '#94a3b8';
             document.getElementById('installLog').textContent = '';
             document.getElementById('installModal').classList.add('show');
         }
