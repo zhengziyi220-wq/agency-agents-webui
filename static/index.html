@@ -73,10 +73,15 @@
             </div>
             <div class="active-bar">
                 <div>
-                    <div class="active-label">当前激活</div>
-                    <div class="active-name" id="activeAgent">未激活</div>
+                    <div class="active-label">当前工具</div>
+                    <div class="active-name" id="currentToolName">未选择</div>
                 </div>
-                <button class="btn btn-default" id="deactivateBtn" onclick="doDeactivate()" style="display:none">停用</button>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-success" id="installToolBtn" onclick="doInstallCurrent()" style="display:none">安装此工具</button>
+                    <button class="btn btn-warning" id="startToolBtn" onclick="doStartCurrent()" style="display:none">启动</button>
+                    <button class="btn btn-danger" id="stopToolBtn" onclick="doStopCurrent()" style="display:none">停止</button>
+                    <button class="btn btn-default" id="deactivateBtn" onclick="doDeactivate()" style="display:none">停用人设</button>
+                </div>
             </div>
             <div class="filters">
                 <button class="filter-btn active" onclick="setFilter('installed')">已安装 (<span id="installedCount">0</span>)</button>
@@ -242,13 +247,23 @@
         function renderAgents() {
             if (!currentTool) {
                 document.getElementById('agentList').innerHTML = '<div class="empty">请选择工具</div>';
+                document.getElementById('currentToolName').textContent = '未选择';
+                document.getElementById('installToolBtn').style.display = 'none';
+                document.getElementById('startToolBtn').style.display = 'none';
+                document.getElementById('stopToolBtn').style.display = 'none';
+                document.getElementById('deactivateBtn').style.display = 'none';
                 return;
             }
             var tool = tools[currentTool];
             document.getElementById('installedCount').textContent = tool.agent_count;
             
+            // 更新顶部工具信息和按钮
+            document.getElementById('currentToolName').textContent = tool.name + (tool.installed ? ' (已安装)' : ' (未安装)');
+            document.getElementById('installToolBtn').style.display = !tool.installed ? 'block' : 'none';
+            document.getElementById('startToolBtn').style.display = (tool.installed && !tool.running && tool.can_start) ? 'block' : 'none';
+            document.getElementById('stopToolBtn').style.display = (tool.running && tool.can_stop) ? 'block' : 'none';
+            
             var ac = active[currentTool];
-            document.getElementById('activeAgent').textContent = ac ? (ac.agent + ' (' + tool.name + ')') : '未激活';
             document.getElementById('deactivateBtn').style.display = ac ? 'block' : 'none';
             
             var deptEl = document.getElementById('deptTags');
@@ -402,6 +417,17 @@
                 showToast(data.message);
                 loadAll();
             });
+        };
+        
+        // 顶部按钮控制当前工具
+        window.doInstallCurrent = function() {
+            if (currentTool) doInstall(currentTool);
+        };
+        window.doStartCurrent = function() {
+            if (currentTool) doStart(currentTool);
+        };
+        window.doStopCurrent = function() {
+            if (currentTool) doStop(currentTool);
         };
         
         // 日志
