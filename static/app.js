@@ -75,7 +75,16 @@ function renderToolList() {
     const container = document.getElementById('toolList');
     container.innerHTML = '';
     
-    for (const [name, tool] of Object.entries(tools)) {
+    // 按状态排序：已安装 > 运行中 > 未安装
+    const sortedTools = Object.entries(tools).sort(([,a], [,b]) => {
+        if (a.installed && !b.installed) return -1;
+        if (!a.installed && b.installed) return 1;
+        if (a.running && !b.running) return -1;
+        if (!a.running && b.running) return 1;
+        return 0;
+    });
+    
+    for (const [name, tool] of sortedTools) {
         const card = document.createElement('div');
         card.className = `tool-card ${currentTool === name ? 'active' : ''}`;
         card.onclick = () => selectTool(name);
@@ -109,7 +118,16 @@ function renderToolTabs() {
     const container = document.getElementById('toolTabs');
     container.innerHTML = '';
     
-    for (const [name, tool] of Object.entries(tools)) {
+    // 按状态排序：已安装 > 运行中 > 未安装
+    const sortedTools = Object.entries(tools).sort(([,a], [,b]) => {
+        if (a.installed && !b.installed) return -1;
+        if (!a.installed && b.installed) return 1;
+        if (a.running && !b.running) return -1;
+        if (!a.running && b.running) return 1;
+        return 0;
+    });
+    
+    for (const [name, tool] of sortedTools) {
         const tab = document.createElement('button');
         tab.className = `tool-tab ${currentTool === name ? 'active' : ''}`;
         tab.textContent = tool.name;
