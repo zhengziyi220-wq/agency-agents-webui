@@ -498,34 +498,10 @@
             });
         };
         window.copyDetail = function() {
-            var el = document.getElementById('detailContent');
-            var content = el.textContent;
+            var content = document.getElementById('detailContent').textContent;
             
-            // 方法1: 使用selection API
-            if (document.selection) {
-                var range = document.body.createTextRange();
-                range.moveToElementText(el);
-                range.select().createTextRange();
-                document.execCommand('copy');
-                showToast('已复制');
-                return;
-            }
-            
-            // 方法2: 使用现代API
-            var selection = window.getSelection();
-            var range = document.createRange();
-            range.selectNodeContents(el);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            try {
-                document.execCommand('copy');
-                showToast('已复制');
-            } catch(e) {
-                showToast('复制失败: ' + e.message);
-            }
-            
-            selection.removeAllRanges();
+            // 使用prompt显示文本让用户复制（最可靠的方法）
+            window.prompt('按 Ctrl+C 复制，然后点击确定', content);
         };
         
         // 显示激活指令
