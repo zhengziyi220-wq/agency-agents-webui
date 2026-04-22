@@ -498,30 +498,34 @@
             });
         };
         window.copyDetail = function() {
-            var content = document.getElementById('detailContent').textContent;
+            var el = document.getElementById('detailContent');
+            var content = el.textContent;
             
-            // 创建临时textarea
-            var textArea = document.createElement('textarea');
-            textArea.value = content;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-9999px';
-            textArea.style.top = '-9999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                var successful = document.execCommand('copy');
-                if (successful) {
-                    showToast('已复制');
-                } else {
-                    showToast('复制失败，请手动复制');
-                }
-            } catch (err) {
-                showToast('复制失败，请手动复制');
+            // 方法1: 使用selection API
+            if (document.selection) {
+                var range = document.body.createTextRange();
+                range.moveToElementText(el);
+                range.select().createTextRange();
+                document.execCommand('copy');
+                showToast('已复制');
+                return;
             }
             
-            document.body.removeChild(textArea);
+            // 方法2: 使用现代API
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                showToast('已复制');
+            } catch(e) {
+                showToast('复制失败: ' + e.message);
+            }
+            
+            selection.removeAllRanges();
         };
         
         // 显示激活指令
