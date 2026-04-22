@@ -59,6 +59,7 @@ class ToolConfig(BaseModel):
     stop_cmd: Optional[str] = None
     restart_cmd: Optional[str] = None
     log_path: Optional[str] = None
+    activate_instruction: Optional[str] = None
 
 
 def load_tool_configs() -> Dict[str, ToolConfig]:
